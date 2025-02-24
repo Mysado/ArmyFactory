@@ -1,43 +1,34 @@
+using System.Security.Cryptography;
 using UnityEngine;
+using UnityEngine.EventSystems;
 using VContainer;
 
 public class ObjectSelector : MonoBehaviour
 {
     private ObjectPlacer objectPlacer;
-    private InputHandler inputHandler;
     private Camera camera;
     
     private Placeable hoveredPlaceable;
     private Placeable selectedPlaceable;
-    private LayerMask groundMask;
     private LayerMask placeableMask;
+    private Vector2Int originalPosition;
+
+    public Placeable SelectedPlaceable => selectedPlaceable;
     
     [Inject]
     public void Configure(ObjectPlacer objectPlacer, InputHandler inputHandler)
     {
         this.objectPlacer = objectPlacer;
-        this.inputHandler = inputHandler;
         camera = Camera.main;
-        inputHandler.OnLPMClicked += OnMouseClick;
-        groundMask = LayerMask.GetMask("Ground");
+        inputHandler.OnLMBClicked += OnLeftMouseClick;
+        inputHandler.OnRMBClicked += OnRightMouseClick;
         placeableMask = LayerMask.GetMask("Placeable");
     }
     
     void Update()
     {
         var ray = camera.ScreenPointToRay(Input.mousePosition);
-        if (selectedPlaceable != null)
-        {
-            if (Physics.Raycast(ray,
-                    out RaycastHit hit, Mathf.Infinity, groundMask))
-            {
-                var position = hit.point;
-                position.x = Mathf.RoundToInt(position.x);
-                position.z = Mathf.RoundToInt(position.z);
-                selectedPlaceable.transform.position = position;
-            }
-        }
-        else
+        if (selectedPlaceable == null)
         {
             if (Physics.Raycast(ray,
                     out RaycastHit hit, Mathf.Infinity, placeableMask))
@@ -56,8 +47,11 @@ public class ObjectSelector : MonoBehaviour
         }
     }
 
-    private void OnMouseClick()
+    private void OnLeftMouseClick()
     {
+        if(EventSystem.current.IsPointerOverGameObject())
+            return;
+        
         if (selectedPlaceable != null)
         {
             var position = new Vector2Int(Mathf.RoundToInt(selectedPlaceable.transform.position.x),
@@ -69,8 +63,50 @@ public class ObjectSelector : MonoBehaviour
         }
         else if(hoveredPlaceable != null)
         {
+            originalPosition = hoveredPlaceable.ParentCellData.CellPosition;
+            objectPlacer.PickupPlaceable(hoveredPlaceable);
             selectedPlaceable = hoveredPlaceable;
             hoveredPlaceable = null;
         }
+    }
+
+    private void OnRightMouseClick()
+    {
+        if(selectedPlaceable == null)
+            return;
+
+        if (originalPosition == Vector2Int.zero)
+        {
+            RemovePlaceable(selectedPlaceable);
+            return;
+        }
+        
+        MovePlaceableToPreviousPosition();
+    }
+
+    private void MovePlaceableToPreviousPosition()
+    {
+        if (objectPlacer.TryToPlaceObject(selectedPlaceable, originalPosition))
+        {
+            selectedPlaceable = null;
+            originalPosition = Vector2Int.zero;
+        }   
+    }
+
+    private void RemovePlaceable(Placeable placeable)
+    {
+        Destroy(placeable.gameObject);
+    }
+
+    public void SpawnNewPlaceable(PlaceableData placeable)
+    {
+        if(selectedPlaceable != null && originalPosition != Vector2Int.zero)
+            MovePlaceableToPreviousPosition();
+        else if(selectedPlaceable != null)
+            RemovePlaceable(selectedPlaceable);
+        
+        var newPlaceable = Instantiate(placeable.Prefab).GetComponent<Placeable>();
+        originalPosition = Vector2Int.zero;
+        selectedPlaceable = newPlaceable;
     }
 }
