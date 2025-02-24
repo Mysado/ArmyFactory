@@ -3,8 +3,8 @@ using UnityEngine;
 
 public class InputHandler : MonoBehaviour
 {
-    public Action OnLPMClicked;
-    public Action OnRPMClicked;
+    public Action OnLMBClicked;
+    public Action OnRMBClicked;
     public Action OnRotateLeftClicked;
     public Action OnRotateRightClicked;
 
@@ -12,9 +12,9 @@ public class InputHandler : MonoBehaviour
     void Update()
     {
             if(Input.GetMouseButtonDown(0))
-                OnLPMClicked?.Invoke();
+                OnLMBClicked?.Invoke();
             if (Input.GetMouseButtonDown(1))
-                OnRPMClicked?.Invoke();
+                OnRMBClicked?.Invoke();
             if(Input.GetKeyDown(KeyCode.R))
                 OnRotateRightClicked?.Invoke();
             if(Input.GetKeyDown(KeyCode.E))

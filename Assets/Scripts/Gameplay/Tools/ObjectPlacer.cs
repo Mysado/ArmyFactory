@@ -10,7 +10,7 @@ public class ObjectPlacer
         this.grid = grid;
     }
 
-    public void MovePlaceable(IPlaceable placeable)
+    public void PickupPlaceable(IPlaceable placeable)
     {
         currentPlaceable = placeable;
         grid.RemoveObjectFromGrid(placeable.ParentCellData.CellPosition);
